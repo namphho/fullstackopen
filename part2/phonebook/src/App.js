@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
 
 const Filter = ({ value, onChange }) => {
   return (
@@ -37,22 +38,25 @@ const PersonsForm = ({
 
 const Persons = ({ persons }) => {
   return persons.map((person) => (
-    <p key={person.number}>
+    <p key={person.id}>
       {person.name} {person.number}
     </p>
   ));
 };
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Arto Hellas", number: "040-123456" },
-    { name: "Ada Lovelace", number: "39-44-5323523" },
-    { name: "Dan Abramov", number: "12-43-234345" },
-    { name: "Mary Poppendieck", number: "39-23-6423122" },
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [searchText, setSearchText] = useState("");
+
+  const hookPersons = () => {
+    axios.get("http://localhost:3001/persons").then((resp) => {
+      setPersons(resp.data);
+    });
+  };
+
+  useEffect(hookPersons, []);
 
   const personsToShow = persons.filter((person) =>
     person.name.toLowerCase().includes(searchText.toLowerCase())
@@ -78,7 +82,7 @@ const App = () => {
   };
 
   const onNameChange = (event) => {
-     setNewName(event.target.value);
+    setNewName(event.target.value);
   };
 
   const onPhoneChange = (event) => setNewPhone(event.target.value);
