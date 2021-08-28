@@ -1,48 +1,8 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-
-const Filter = ({ value, onChange }) => {
-  return (
-    <>
-      <div>
-        filter shown with <input value={value} onChange={onChange} />
-      </div>
-    </>
-  );
-};
-
-const PersonsForm = ({
-  name,
-  onNameChange,
-  phone,
-  onPhoneChange,
-  onSubmit,
-}) => {
-  console.log("renderingn....", name);
-  return (
-    <form>
-      <div>
-        name: <input value={name} onChange={onNameChange} />
-      </div>
-      <div>
-        phone: <input value={phone} onChange={onPhoneChange} />
-      </div>
-      <div>
-        <button type="submit" onClick={onSubmit}>
-          add
-        </button>
-      </div>
-    </form>
-  );
-};
-
-const Persons = ({ persons }) => {
-  return persons.map((person) => (
-    <p key={person.id}>
-      {person.name} {person.number}
-    </p>
-  ));
-};
+import PhoneService from "./services/phones";
+import Filter from "./components/Filter";
+import Persons from "./components/Persons";
+import PersonsForm from "./components/PersonsForm";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
@@ -51,8 +11,8 @@ const App = () => {
   const [searchText, setSearchText] = useState("");
 
   const hookPersons = () => {
-    axios.get("http://localhost:3001/persons").then((resp) => {
-      setPersons(resp.data);
+    PhoneService.getAll().then((initialData) => {
+      setPersons(initialData);
     });
   };
 
@@ -62,11 +22,24 @@ const App = () => {
     person.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const onNameChange = (event) => {
+    setNewName(event.target.value);
+  };
+
+  const onPhoneChange = (event) => setNewPhone(event.target.value);
+
+  const onSearchTextChange = (event) => setSearchText(event.target.value);
+
   const addNew = (event) => {
     event.preventDefault();
     const found = persons.find((p) => p.name === newName);
     if (found !== undefined) {
-      alert(`${newName} is already added to phonebook`);
+      if (found.number === newPhone) {
+        alert(`${newName} is already added to phonebook`);
+      } else {
+        console.log("replace phone number");
+        replaceNumberForExistingPerson(found);
+      }
       setNewName("");
       setNewPhone("");
       return;
@@ -76,18 +49,43 @@ const App = () => {
       name: newName,
       number: newPhone,
     };
-    setPersons(persons.concat(userObject));
-    setNewName("");
-    setNewPhone("");
+    PhoneService.create(userObject).then((newPerson) => {
+      setPersons(persons.concat(newPerson));
+      setNewName("");
+      setNewPhone("");
+    });
   };
 
-  const onNameChange = (event) => {
-    setNewName(event.target.value);
+  const replaceNumberForExistingPerson = (person) => {
+    const msg = `${person.name} is already added to phonebook, replace the old number with a new one?`;
+
+    const result = window.confirm(msg);
+    if (result) {
+      const changedPerson = { ...person, number: newPhone };
+      PhoneService.update(person.id, changedPerson).then((returnedPerson) => {
+        setPersons(
+          persons.map((p) => (p.id === person.id ? returnedPerson : p))
+        );
+      });
+    }
   };
 
-  const onPhoneChange = (event) => setNewPhone(event.target.value);
+  const deletePersonById = (id) => {
+    const person = persons.filter((p) => p.id === id);
+    const msg = `delete ${person[0].name}`;
 
-  const onSearchTextChange = (event) => setSearchText(event.target.value);
+    const result = window.confirm(msg);
+    if (result) {
+      PhoneService.deletePerson(id).then((resp) => {
+        console.log(resp);
+        persons.splice(
+          persons.findIndex((p) => p.id === id),
+          1
+        );
+        setPersons([...persons]);
+      });
+    }
+  };
 
   return (
     <div>
@@ -102,7 +100,10 @@ const App = () => {
         onSubmit={addNew}
       />
       <h2>Numbers</h2>
-      <Persons persons={personsToShow} />
+      <Persons
+        persons={personsToShow}
+        deletePerson={(id) => deletePersonById(id)}
+      />
     </div>
   );
 };
