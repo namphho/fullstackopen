@@ -3,12 +3,14 @@ import PhoneService from "./services/phones";
 import Filter from "./components/Filter";
 import Persons from "./components/Persons";
 import PersonsForm from "./components/PersonsForm";
+import Notification from "./components/Notification";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [notiBundle, setNotifiBundle] = useState({msg: null, isError: null});
 
   const hookPersons = () => {
     PhoneService.getAll().then((initialData) => {
@@ -50,6 +52,7 @@ const App = () => {
       number: newPhone,
     };
     PhoneService.create(userObject).then((newPerson) => {
+      showNotificationMsg(`Added ${newPerson.name}`, false);
       setPersons(persons.concat(newPerson));
       setNewName("");
       setNewPhone("");
@@ -77,7 +80,13 @@ const App = () => {
     const result = window.confirm(msg);
     if (result) {
       PhoneService.deletePerson(id).then((resp) => {
-        console.log(resp);
+        persons.splice(
+          persons.findIndex((p) => p.id === id),
+          1
+        );
+        setPersons([...persons]);
+      }).catch(error => {
+        showNotificationMsg(`Information of ${person[0].name} has already been removed from server`, true);
         persons.splice(
           persons.findIndex((p) => p.id === id),
           1
@@ -87,9 +96,20 @@ const App = () => {
     }
   };
 
+  const showNotificationMsg = (msg, isError) => {
+    setNotifiBundle({msg, isError});
+    setTimeout(() => {
+      setNotifiBundle({ msg: null, isError: null });
+    }, 3000);
+  };
+
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification
+        message={notiBundle.msg}
+        isError={notiBundle.isError}
+      />
       <Filter value={searchText} onChange={onSearchTextChange} />
       <h2>Add New</h2>
       <PersonsForm
