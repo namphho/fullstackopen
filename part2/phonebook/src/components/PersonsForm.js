@@ -12,7 +12,7 @@ const PersonsForm = ({
         name: <input value={name} onChange={onNameChange} />
       </div>
       <div>
-        phone: <input value={phone} onChange={onPhoneChange} />
+        phone: <input type="tel" value={phone} onChange={onPhoneChange} />
       </div>
       <div>
         <button type="submit" onClick={onSubmit}>

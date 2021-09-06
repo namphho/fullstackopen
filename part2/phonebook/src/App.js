@@ -10,7 +10,7 @@ const App = () => {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [notiBundle, setNotifiBundle] = useState({msg: null, isError: null});
+  const [notiBundle, setNotifiBundle] = useState({ msg: null, isError: null });
 
   const hookPersons = () => {
     PhoneService.getAll().then((initialData) => {
@@ -51,12 +51,16 @@ const App = () => {
       name: newName,
       number: newPhone,
     };
-    PhoneService.create(userObject).then((newPerson) => {
-      showNotificationMsg(`Added ${newPerson.name}`, false);
-      setPersons(persons.concat(newPerson));
-      setNewName("");
-      setNewPhone("");
-    });
+    PhoneService.create(userObject)
+      .then((newPerson) => {
+        showNotificationMsg(`Added ${newPerson.name}`, false);
+        setPersons(persons.concat(newPerson));
+        setNewName("");
+        setNewPhone("");
+      })
+      .catch((error) => {
+        showNotificationMsg(error.response.data.error, true);
+      });
   };
 
   const replaceNumberForExistingPerson = (person) => {
@@ -69,7 +73,7 @@ const App = () => {
         setPersons(
           persons.map((p) => (p.id === person.id ? returnedPerson : p))
         );
-      });
+      }).catch(error => showNotificationMsg(error.response.data.error, true));
     }
   };
 
@@ -79,25 +83,30 @@ const App = () => {
 
     const result = window.confirm(msg);
     if (result) {
-      PhoneService.deletePerson(id).then((resp) => {
-        persons.splice(
-          persons.findIndex((p) => p.id === id),
-          1
-        );
-        setPersons([...persons]);
-      }).catch(error => {
-        showNotificationMsg(`Information of ${person[0].name} has already been removed from server`, true);
-        persons.splice(
-          persons.findIndex((p) => p.id === id),
-          1
-        );
-        setPersons([...persons]);
-      });
+      PhoneService.deletePerson(id)
+        .then((resp) => {
+          persons.splice(
+            persons.findIndex((p) => p.id === id),
+            1
+          );
+          setPersons([...persons]);
+        })
+        .catch((error) => {
+          showNotificationMsg(
+            `Information of ${person[0].name} has already been removed from server`,
+            true
+          );
+          persons.splice(
+            persons.findIndex((p) => p.id === id),
+            1
+          );
+          setPersons([...persons]);
+        });
     }
   };
 
   const showNotificationMsg = (msg, isError) => {
-    setNotifiBundle({msg, isError});
+    setNotifiBundle({ msg, isError });
     setTimeout(() => {
       setNotifiBundle({ msg: null, isError: null });
     }, 3000);
@@ -106,10 +115,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification
-        message={notiBundle.msg}
-        isError={notiBundle.isError}
-      />
+      <Notification message={notiBundle.msg} isError={notiBundle.isError} />
       <Filter value={searchText} onChange={onSearchTextChange} />
       <h2>Add New</h2>
       <PersonsForm
